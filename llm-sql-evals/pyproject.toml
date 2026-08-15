@@ -1,0 +1,11 @@
+[project]
+name = "llm-sql-evals"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "langchain-openrouter>=0.2.7",
+    "pandas>=3.0.5",
+    "python-dotenv>=1.2.2",
+]
