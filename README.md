@@ -1,2 +1,1 @@
-# rag-evaluation
-How to evaluate complete rag pipeline
+# Complete code how to eval Models and Rag pipeline
