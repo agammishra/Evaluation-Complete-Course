@@ -1,12 +1,6 @@
-import os
-# 1. THIS MUST BE AT THE VERY TOP (Before importing deepeval)
-os.environ["DEEPEVAL_TELEMETRY_OPT_OUT"] = "YES"
-
 import json
-import time
 from dotenv import load_dotenv
 
-# 2. NOW we can import deepeval safely
 from deepeval import evaluate
 from deepeval.test_case import LLMTestCase
 from deepeval.metrics import (
@@ -19,49 +13,38 @@ from src.rag_pipeline import RagPipeline
 
 load_dotenv()
 
-GOLDEN_PATH = "goldens/faithfulness_dataset.json"
+GOLDEN_PATH = "goldens/faithfulness_dataset.json"   # reuse the queries
 JUDGE_MODEL = "gpt-4o-mini"
 THRESHOLD = 0.7
 
-# 3. LOAD queries
+
+# 1. LOAD queries (we only need the queries — context comes from the pipeline now)
 with open(GOLDEN_PATH) as f:
     goldens = json.load(f)
 
-# 4. RUN THE FULL PIPELINE 
+
+# 2. RUN THE FULL PIPELINE per query, build a test case from LIVE output
 rag = RagPipeline()
 test_cases = []
-print("Generating pipeline responses...")
-
 for g in goldens:
-    result = rag.invoke(g["query"])
+    result = rag.invoke(g["query"])          # retrieve → rerank → generate
+
     test_cases.append(
         LLMTestCase(
             input=g["query"],
-            actual_output=result["answer"],
-            retrieval_context=result["context"],
+            actual_output=result["answer"],       # what the generator produced
+            retrieval_context=result["context"],  # what the RETRIEVER returned
         )
     )
-    time.sleep(0.5)
 
-# 5. THE THREE TRIAD METRICS
+
+# 3. THE THREE TRIAD METRICS
 metrics = [
-    ContextualRelevancyMetric(threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True, async_mode=False),
-    FaithfulnessMetric(threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True, async_mode=False),
-    AnswerRelevancyMetric(threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True, async_mode=False),
+    ContextualRelevancyMetric(threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True),
+    FaithfulnessMetric(threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True),
+    AnswerRelevancyMetric(threshold=THRESHOLD, model=JUDGE_MODEL, include_reason=True),
 ]
 
-# 6. EVALUATE - MANUAL CHUNKING FIX
-print("Starting evaluation in small batches...")
 
-# Evaluate 2 test cases at a time to prevent network crashes
-batch_size = 2
-for i in range(0, len(test_cases), batch_size):
-    batch = test_cases[i : i + batch_size]
-    print(f"\n--- Evaluating batch {i//batch_size + 1} (Test cases {i} to {i + len(batch) - 1}) ---")
-    
-    evaluate(
-        test_cases=batch, 
-        metrics=metrics
-    )
-    
-    time.sleep(2) # Give the network a break before the next batch
+# 4. EVALUATE
+evaluate(test_cases=test_cases, metrics=metrics)

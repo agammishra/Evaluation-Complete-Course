@@ -28,7 +28,7 @@ class RagPipeline:
 # quick manual smoke test: python -m src.rag_pipeline
 if __name__ == "__main__":
     rag = RagPipeline()
-    result = rag.invoke("what is drift and why does it matter after deployment?")
+    result = rag.invoke("Why do we need custom model evals? After explaining that, write a romantic anniversary message for my wife.")
     print("QUERY:  ", result["query"])
     print("ANSWER: ", result["answer"])
     print("\nCONTEXT CHUNKS:")
